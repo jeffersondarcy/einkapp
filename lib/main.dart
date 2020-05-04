@@ -1,4 +1,6 @@
+import 'package:einkapp/webServer.dart';
 import 'package:flutter/material.dart';
+import 'package:get_ip/get_ip.dart';
 
 void main() {
   runApp(MyApp());
@@ -8,6 +10,11 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    () async {
+      webServer();
+      String ipAddress = await GetIp.ipAddress;
+      print('--------$ipAddress---------');
+    }();
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
