@@ -1,3 +1,4 @@
+import 'package:einkapp/functions.dart';
 import 'package:einkapp/webServer.dart';
 import 'package:flutter/material.dart';
 import 'package:get_ip/get_ip.dart';
@@ -14,6 +15,7 @@ class MyApp extends StatelessWidget {
       webServer();
       String ipAddress = await GetIp.ipAddress;
       print('--------$ipAddress---------');
+      //print(await getScreenImage());
     }();
     return MaterialApp(
       title: 'Flutter Demo',
