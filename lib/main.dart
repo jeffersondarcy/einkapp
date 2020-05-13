@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       webServer();
       String ipAddress = await GetIp.ipAddress;
       print('--------$ipAddress---------');
-      //print(await getScreenImage());
+      print(await getScreenImage());
     }();
     return MaterialApp(
       title: 'Flutter Demo',
