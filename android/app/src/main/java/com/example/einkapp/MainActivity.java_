@@ -1,6 +1,19 @@
 package com.example.einkapp;
 
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Point;
+import android.hardware.display.DisplayManager;
+import android.hardware.display.VirtualDisplay;
+import android.media.projection.MediaProjection;
+import android.media.projection.MediaProjectionManager;
 import android.os.Bundle;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import android.view.Display;
+import android.view.Surface;
+import android.view.WindowManager;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -9,21 +22,7 @@ import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
 
-import android.media.projection.MediaProjectionManager;
-import android.hardware.display.VirtualDisplay;
-import android.media.projection.MediaProjection;
-import android.content.Context;
-import android.content.Intent;
-import android.view.Display;
-import android.view.Surface;
-import android.util.Log;
-import android.widget.Toast;
-import android.hardware.display.DisplayManager;
-import android.view.WindowManager;
-import android.util.DisplayMetrics;
-import android.graphics.Point;
-
-public class MainActivity extends FlutterActivity {
+public class MainActivity_ extends FlutterActivity {
     private MediaProjectionManager mProjectionManager;
     private MediaProjection mMediaProjection;
     private VirtualDisplay mVirtualDisplay;
@@ -51,19 +50,32 @@ public class MainActivity extends FlutterActivity {
                 mSurface, null /*Callbacks*/, null /*Handler*/);
     }
 
+    private void shareScreen() {
+        if (mSurface == null) {
+            return;
+        }
+        if (mMediaProjection == null) {
+            startActivityForResult(mProjectionManager.createScreenCaptureIntent(),
+                    PERMISSION_CODE);
+            return;
+        }
+        mVirtualDisplay = createVirtualDisplay();
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        initDisplayParameters();
         super.onCreate(savedInstanceState);
+
+        /*
+        initDisplayParameters();
         mProjectionManager =
-                (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
-        startActivityForResult(mProjectionManager.createScreenCaptureIntent(),
-                PERMISSION_CODE);
+            (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+
+        shareScreen();*/
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-
         if (requestCode != PERMISSION_CODE) {
             Log.e(TAG, "Unknown request code: " + requestCode);
             return;
@@ -75,8 +87,6 @@ public class MainActivity extends FlutterActivity {
         }
         mMediaProjection = mProjectionManager.getMediaProjection(resultCode, data);
         mVirtualDisplay = createVirtualDisplay();
-
-
     }
 
     @Override
@@ -86,7 +96,6 @@ public class MainActivity extends FlutterActivity {
             mMediaProjection.stop();
             mMediaProjection = null;
         }
-        mVirtualDisplay.release();
     }
 
     @Override
@@ -94,7 +103,11 @@ public class MainActivity extends FlutterActivity {
     super.configureFlutterEngine(flutterEngine);
     //ScreenshotHandler screenshotHandler = new ScreenshotHandler(this);
         //initDisplayParameters();
+       mProjectionManager =
+                (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
 
+       startActivityForResult(mProjectionManager.createScreenCaptureIntent(),
+               PERMISSION_CODE);
        //shareScreen();
     new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
       .setMethodCallHandler(
