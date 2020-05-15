@@ -99,10 +99,8 @@ public class MainActivity extends FlutterActivity implements OnImageAvailableLis
     @Override
   public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
     super.configureFlutterEngine(flutterEngine);
-    //ScreenshotHandler screenshotHandler = new ScreenshotHandler(this);
-        //initDisplayParameters();
 
-       //shareScreen();
+    
     new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
       .setMethodCallHandler(
         (call, result) -> {
