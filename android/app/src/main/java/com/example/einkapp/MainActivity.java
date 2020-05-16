@@ -119,66 +119,9 @@ public class MainActivity extends FlutterActivity implements OnImageAvailableLis
     @Override
     public void onImageAvailable(ImageReader reader) {
         Image image = reader.acquireLatestImage();
-        Log.w("mylog", reader.toString());
-
-        FileOutputStream fos = null;
-            Bitmap bitmap = null;
-            Image img = null;
-            try {
-                img = reader.acquireLatestImage();
-                if (img != null) {
-                    Image.Plane[] planes = img.getPlanes();
-                    if (planes[0].getBuffer() == null) {
-                        return;
-                    }
-                    int width = img.getWidth();
-                    int height = img.getHeight();
-                    int pixelStride = planes[0].getPixelStride();
-                    int rowStride = planes[0].getRowStride();
-                    int rowPadding = rowStride - pixelStride * width;
-                    byte[] newData = new byte[width * height * 4];
-
-                    int offset = 0;
-                    bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                    ByteBuffer buffer = planes[0].getBuffer();
-                    for (int i = 0; i < height; ++i) {
-                        for (int j = 0; j < width; ++j) {
-                            int pixel = 0;
-                            pixel |= (buffer.get(offset) & 0xff) << 16;     // R
-                            pixel |= (buffer.get(offset + 1) & 0xff) << 8;  // G
-                            pixel |= (buffer.get(offset + 2) & 0xff);       // B
-                            pixel |= (buffer.get(offset + 3) & 0xff) << 24; // A
-                            bitmap.setPixel(j, i, pixel);
-                            offset += pixelStride;
-                        }
-                        offset += rowPadding;
-                    }
-                    String name = "/myscreen.jpg";
-                    File file = new File(Environment.DIRECTORY_PICTURES, name);
-                    fos = new FileOutputStream(file.getAbsolutePath());
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
-                    img.close();
-                }
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                if (null != fos) {
-                    try {
-                        fos.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                if (null != bitmap) {
-                    bitmap.recycle();
-                }
-                if (null != img) {
-                    img.close();
-                }
-
-            }
+        final String channelName = "e-ink.fitdev.io/screen-capture";
+        MethodChannel methodChannel = new MethodChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
+        methodChannel.invokeMethod("newImageAvailable", image.hashCode());
         image.close();
-
     }
 }

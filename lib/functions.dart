@@ -1,13 +1,16 @@
 import 'package:flutter/services.dart';
 
-const platform = const MethodChannel('e-ink.fitdev.io/screen-capture');
+const channelName = 'e-ink.fitdev.io/screen-capture';
+final methodChannel = MethodChannel('e-ink.fitdev.io/screen-capture');
 
-Future<String> getScreenImage() async {
-  String image;
-  try {
-    final String result = await platform.invokeMethod('getScreenImage');
-    image = result;
-  } on PlatformException catch (e) {}
+Future<void> handleNewImage(MethodCall call) {
+  // type inference will work here avoiding an explicit cast
+  switch (call.method) {
+    case "newImageAvailable":
+      print(call.arguments);
+  }
+}
 
-  return image;
+registerImageHandler() {
+  methodChannel.setMethodCallHandler(handleNewImage);
 }
