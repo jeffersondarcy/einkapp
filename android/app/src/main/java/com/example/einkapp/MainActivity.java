@@ -13,6 +13,7 @@ import androidx.annotation.Nullable;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
+import io.flutter.plugin.common.EventChannel;
 import io.flutter.plugin.common.MethodChannel;
 
 import android.media.projection.MediaProjectionManager;
@@ -34,13 +35,18 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class MainActivity extends FlutterActivity implements OnImageAvailableListener {
+public class MainActivity extends FlutterActivity {
     private MediaProjectionManager mProjectionManager;
     private MediaProjection mMediaProjection;
     private VirtualDisplay mVirtualDisplay;
     int width, height, density;
     ImageReader mImageReader;
+    EventChannel imageStreamChannel;
     private static final String CHANNEL = "e-ink.fitdev.io/screen-capture";
     private static final String TAG = "MediaProjectionDemo";
     private static final int PERMISSION_CODE = 1;
@@ -58,6 +64,7 @@ public class MainActivity extends FlutterActivity implements OnImageAvailableLis
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
+        final String channelName = "e-ink.fitdev.io/screenshotStream";
         initDisplayParameters();
         super.onCreate(savedInstanceState);
         mProjectionManager =
@@ -80,9 +87,9 @@ public class MainActivity extends FlutterActivity implements OnImageAvailableLis
         }
         mMediaProjection = mProjectionManager.getMediaProjection(resultCode, data);
         mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 10);
-        mImageReader.setOnImageAvailableListener(this, null);
+        startStreamingChannel();
         final int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
-        mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
+        //mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
         Log.w("mylog", "dsdfsfs serfsf");
     }
 
@@ -97,31 +104,58 @@ public class MainActivity extends FlutterActivity implements OnImageAvailableLis
     }
 
     @Override
-  public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
-    super.configureFlutterEngine(flutterEngine);
+    public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
+        super.configureFlutterEngine(flutterEngine);
 
-    
-    new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL)
-      .setMethodCallHandler(
-        (call, result) -> {
-          if (call.method.equals("getScreenImage")) {
-              //screenshotHandler.takeScreenshot();
-             // handler = ScreenshotHandler.getInstance();
-             // handler.takeScreenShot();
-                result.success("hallo bla vbla");
-            } else {
-              result.notImplemented();
-            }
-        }
-      );
-  }
+        final String channelName = "e-ink.fitdev.io/screenshotStream";
+        imageStreamChannel = new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
+    }
 
-    @Override
-    public void onImageAvailable(ImageReader reader) {
-        Image image = reader.acquireLatestImage();
-        final String channelName = "e-ink.fitdev.io/screen-capture";
-        MethodChannel methodChannel = new MethodChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
-        methodChannel.invokeMethod("newImageAvailable", image.hashCode());
-        image.close();
+    private void startStreamingChannel() {
+        imageStreamChannel.setStreamHandler(
+                new EventChannel.StreamHandler() {
+                    @Override
+                    public void onListen(Object o, EventChannel.EventSink imageStreamSink) {
+                        setImageStreamImageAvailableListener(imageStreamSink);
+                    }
+
+                    @Override
+                    public void onCancel(Object o) {
+                        mImageReader.setOnImageAvailableListener(null, null);
+                    }
+                });
+    }
+
+    private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
+        mImageReader.setOnImageAvailableListener(
+                reader -> {
+                    Image img = reader.acquireLatestImage();
+                    if (img == null) return;
+
+                    List<Map<String, Object>> planes = new ArrayList<>();
+                    for (Image.Plane plane : img.getPlanes()) {
+                        ByteBuffer buffer = plane.getBuffer();
+
+                        byte[] bytes = new byte[buffer.remaining()];
+                        buffer.get(bytes, 0, bytes.length);
+
+                        Map<String, Object> planeBuffer = new HashMap<>();
+                        planeBuffer.put("bytesPerRow", plane.getRowStride());
+                        planeBuffer.put("bytesPerPixel", plane.getPixelStride());
+                        planeBuffer.put("bytes", bytes);
+
+                        planes.add(planeBuffer);
+                    }
+
+                    Map<String, Object> imageBuffer = new HashMap<>();
+                    imageBuffer.put("width", img.getWidth());
+                    imageBuffer.put("height", img.getHeight());
+                    imageBuffer.put("format", img.getFormat());
+                    imageBuffer.put("planes", planes);
+
+                    imageStreamSink.success(imageBuffer);
+                    img.close();
+                },
+                null);
     }
 }

@@ -8,7 +8,7 @@ void main() async {
   String ipAddress = await GetIp.ipAddress;
   print('--------$ipAddress---------');
   webServer();
-  registerImageHandler();
+  registerScreenshotStreamSubscription();
   runApp(MyApp());
 }
 

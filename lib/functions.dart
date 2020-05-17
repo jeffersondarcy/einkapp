@@ -1,16 +1,14 @@
+import 'package:einkapp/camera_image.dart';
 import 'package:flutter/services.dart';
 
-const channelName = 'e-ink.fitdev.io/screen-capture';
-final methodChannel = MethodChannel('e-ink.fitdev.io/screen-capture');
+const EventChannel eventChannel = EventChannel('e-ink.fitdev.io/screenshotStream');
+CameraImage image;
 
-Future<void> handleNewImage(MethodCall call) {
-  // type inference will work here avoiding an explicit cast
-  switch (call.method) {
-    case "newImageAvailable":
-      print(call.arguments);
-  }
+void handleNewImage(dynamic imageData) {
+  image = CameraImage.fromPlatformData(imageData);
+  print(image.height);
 }
 
-registerImageHandler() {
-  methodChannel.setMethodCallHandler(handleNewImage);
+registerScreenshotStreamSubscription() {
+  eventChannel.receiveBroadcastStream().listen(handleNewImage);
 }
