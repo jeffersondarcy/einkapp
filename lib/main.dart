@@ -1,4 +1,3 @@
-import 'package:einkapp/functions.dart';
 import 'package:einkapp/webServer.dart';
 import 'package:flutter/material.dart';
 import 'package:get_ip/get_ip.dart';
@@ -8,7 +7,6 @@ void main() async {
   String ipAddress = await GetIp.ipAddress;
   print('--------$ipAddress---------');
   webServer();
-  registerScreenshotStreamSubscription();
   runApp(MyApp());
 }
 

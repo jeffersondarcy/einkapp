@@ -31,6 +31,7 @@ import android.view.WindowManager;
 import android.util.DisplayMetrics;
 import android.graphics.Point;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -44,6 +45,7 @@ public class MainActivity extends FlutterActivity {
     private MediaProjectionManager mProjectionManager;
     private MediaProjection mMediaProjection;
     private VirtualDisplay mVirtualDisplay;
+    private EventChannel eventChannel;
     int width, height, density;
     ImageReader mImageReader;
     EventChannel imageStreamChannel;
@@ -86,10 +88,8 @@ public class MainActivity extends FlutterActivity {
             return;
         }
         mMediaProjection = mProjectionManager.getMediaProjection(resultCode, data);
-        mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 10);
-        startStreamingChannel();
         final int flags = DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR;
-        //mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
+        mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
         Log.w("mylog", "dsdfsfs serfsf");
     }
 
@@ -107,12 +107,14 @@ public class MainActivity extends FlutterActivity {
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
 
+        mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 10);
         final String channelName = "e-ink.fitdev.io/screenshotStream";
-        imageStreamChannel = new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
+        eventChannel = new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
+        setStreamHandler();
     }
 
-    private void startStreamingChannel() {
-        imageStreamChannel.setStreamHandler(
+    private void setStreamHandler() {
+        eventChannel.setStreamHandler(
                 new EventChannel.StreamHandler() {
                     @Override
                     public void onListen(Object o, EventChannel.EventSink imageStreamSink) {
@@ -132,6 +134,20 @@ public class MainActivity extends FlutterActivity {
                     Image img = reader.acquireLatestImage();
                     if (img == null) return;
 
+                    final Image.Plane[] planes = img.getPlanes();
+                    final ByteBuffer buffer = planes[0].getBuffer();
+                    int offset = 0;
+                    int pixelStride = planes[0].getPixelStride();
+                    int rowStride = planes[0].getRowStride();
+                    int rowPadding = rowStride - pixelStride * width;
+// create bitmap
+                    Bitmap bitmap = Bitmap.createBitmap(width+rowPadding/pixelStride, height, Bitmap.Config.ARGB_8888);
+                    bitmap.copyPixelsFromBuffer(buffer);
+                    ByteArrayOutputStream baos=new ByteArrayOutputStream();
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+                    byte[] newPng=baos.toByteArray();
+
+                    /*
                     List<Map<String, Object>> planes = new ArrayList<>();
                     for (Image.Plane plane : img.getPlanes()) {
                         ByteBuffer buffer = plane.getBuffer();
@@ -154,6 +170,8 @@ public class MainActivity extends FlutterActivity {
                     imageBuffer.put("planes", planes);
 
                     imageStreamSink.success(imageBuffer);
+                     */
+                    imageStreamSink.success(newPng);
                     img.close();
                 },
                 null);

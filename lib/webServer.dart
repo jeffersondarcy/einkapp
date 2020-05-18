@@ -1,14 +1,24 @@
 import 'dart:io';
 
-import 'package:einkapp/functions.dart';
+import 'package:flutter/services.dart';
+
+const EventChannel eventChannel = EventChannel('e-ink.fitdev.io/screenshotStream');
+dynamic image;
+
+void handleNewImage(dynamic imageData) {
+  image = imageData;
+}
+
+registerScreenshotStreamSubscription() {
+  eventChannel.receiveBroadcastStream().listen(handleNewImage);
+}
 
 Future webServer() async {
-  String path = '';
-  File image;
+  registerScreenshotStreamSubscription();
   HttpServer.bind(InternetAddress.anyIPv6, 3000).then((server) {
     server.listen((HttpRequest request) async {
-      //request.response.write('Hello, worldдфгфдг! ${getScreenImage()}');
-      request.response.write('Hello, worldдфгфдг!');
+      request.response.headers.set('Content-Type', 'image/png');
+      request.response.add(image);
       request.response.close();
     });
   });
