@@ -10,12 +10,10 @@ void handleNewImage(dynamic imageData) {
   image = imageData;
 }
 
-registerScreenshotStreamSubscription() {
-  eventChannel.receiveBroadcastStream().listen(handleNewImage);
-}
+
 
 Future webServer() async {
-  registerScreenshotStreamSubscription();
+  eventChannel.receiveBroadcastStream().listen(handleNewImage);
   HttpServer.bind(InternetAddress.anyIPv6, 3000).then((server) {
     server.listen((HttpRequest request) async {
       if(WebSocketTransformer.isUpgradeRequest(request)) {
@@ -34,12 +32,7 @@ Future webServer() async {
 
 handleWebsocketCommunication(HttpRequest request) async {
   ws = await WebSocketTransformer.upgrade(request);
-  void imageUpdated(dynamic imageData){
-    print('ws:new image');
-    ws.add('new image');
-  }
-
-  eventChannel.receiveBroadcastStream().listen(imageUpdated);
+  ws.addStream(eventChannel.receiveBroadcastStream());
 }
 
 serveScreenshot(HttpRequest request) async {
