@@ -1,22 +1,17 @@
-const socket = new WebSocket(`ws://${window.location.host}`);
 const imageElement = document.getElementById('mainScreenImg');
+const imageUrl = () => `${window.location.href}screenshot?${new Date().getTime()}`
+//const imageUrl = () => 'http://192.168.0.164:3000/screenshot'
+const reloadImage = () => {
 
-const getImageSrcFromData = async (event) => {
-    if (!event.data || !(event.data instanceof Blob)) return null
-
-    const reader = new FileReader();
-    reader.readAsDataURL(event.data);
-    return reader.result
+    document.getElementById('mainScreenImg').setAttribute('src', imageUrl())
 }
-socket.onmessage = async (event) => {
-    if (!event.data || !(event.data instanceof Blob)) return
-    console.log(event)
 
-    const reader = new FileReader();
-    reader.addEventListener('load', () => {
-        document.getElementById('mainScreenImg').setAttribute('src', reader.result)
-        console.log('bla');
-    })
-    reader.readAsDataURL(event.data);
+const reloadText = () => {
+
+    document.getElementById('text').innerHTML('src', imageUrl())
 }
+reloadImage();
+//setInterval(() => {reloadImage();console.log(imageUrl())}, 2000);
+setInterval(() => {document.write(Date())}, 2000);
+//reloadImage();
 
