@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:shelf/shelf.dart' show Handler, Pipeline, Request;
+import 'package:shelf/shelf.dart' show Handler, Pipeline, Request, Response;
 import 'package:shelf/shelf_io.dart' as io;
 
 import 'package:flutter/services.dart';
@@ -13,7 +13,8 @@ void handleNewImage(dynamic imageData) {
   image = imageData;
 }
 
-Future shelfWebServer() async {
+Future webServer() async {
+  eventChannel.receiveBroadcastStream().listen(handleNewImage);
   var sseHandler = SseHandler(Uri.parse('/sse'));
   final handler = const Pipeline().addHandler(requestHandler);
   io.serve(handler, InternetAddress.anyIPv6, 3000).then((server) {
@@ -22,44 +23,35 @@ Future shelfWebServer() async {
 }
 
 SseHandler handler = SseHandler(Uri.parse('/sse'));
-Future<dynamic> requestHandler(Request request) {
+Future<Response> requestHandler(Request request) {
   switch(request.requestedUri.path) {
-        case '/': serveMain(request); break;
+        case '/': return serveMain(request); break;
+        case '/screenshot': return serveScreenshot(request); break;
+        default : return serveMain(request);
+        /*
         case '/test': serveExperiment(request); break;
         case '/screenshot': serveScreenshot(request); break;
         case '/sse': serveEvents(request); break;
         default: serveText(request);
+
+         */
       }
 }
 
-SseHandler handler = SseHandler(Uri.parse('/sse'));
-Future<void>serveEvents(HttpRequest request) async {
-  response = await handler.handler(shelf.Request)
-  request.response.headers.set('Cache-control', 'no-cache');
-  request.response.headers.set('Content-Type', 'text/event-stream');
-  request.response.write('bla');
-  request.response.flush();
-  Timer fut = Timer.periodic(Duration(seconds: 1), (timer) {
-    print('out');
-  request.response.write('bla');
-    request.response.flush();
-  });
+
+Future<Response> serveScreenshot(Request request) async {
+  const headers = {
+    'content-type': 'image/png',
+    'Cache-control': 'max-age=0, must-revalidate',
+  };
+  return Response.ok(image, headers: headers);
 }
 
-serveScreenshot(HttpRequest request) async {
-  request.response.headers.set('Content-Type', 'image/png');
-  request.response.headers.set('Cache-control', 'max-age=0, must-revalidate');
-  request.response.add(image);
-  request.response.close();
-}
-
-serveMain(HttpRequest request) async {
-  request.response.headers.contentType = ContentType.html;
+Future<Response> serveMain(Request request) async {
   String js = await getFileContent('functions.js');
   String html = await getFileContent('index.html');
   String content = html.replaceFirst('//AutoreplaceByServer', js);
-  request.response.write(content);
-  request.response.close();
+  return Response.ok(content, headers: {'content-type': 'text/html'});
 }
 
 serveExperiment(HttpRequest request) async {
