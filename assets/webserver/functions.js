@@ -1,11 +1,14 @@
-const imageElement = document.getElementById('mainScreenImg');
-const imageUrl = () => `${window.location.href}screenshot?${new Date().getTime()}`
+var imageElement = document.getElementById('mainScreenImg');
 
-const reloadImage = () => {
-    console.log(new Date().getTime())
+function imageUrl() {
+    return window.location.href + 'screenshot?' + new Date().getTime()
+}
+
+function reloadImage() {
+    //document.body.innerHTML += '<div>' + imageUrl() + '</div>'
     imageElement.setAttribute('src', imageUrl())
 }
 
-const evtSource = new EventSource(`${window.location.href}sse`);
+var evtSource = new EventSource(window.location.href +'sse');
 evtSource.onmessage = reloadImage;
 

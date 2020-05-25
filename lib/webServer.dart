@@ -1,59 +1,63 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:convert';
-import 'package:shelf/shelf.dart' show Handler, Pipeline, Request, Response;
-import 'package:shelf/shelf_io.dart' as io;
 
 import 'package:flutter/services.dart';
-import 'package:sse/server/sse_handler.dart';
 
 const EventChannel eventChannel = EventChannel('e-ink.fitdev.io/screenshotStream');
 dynamic image;
-SseHandler sseHandler = SseHandler(Uri.parse('/sse'), keepAlive: Duration(minutes: 10));
+WebSocket ws;
 
-void handleNewImage(dynamic imageData) async {
+void handleNewImage(dynamic imageData) {
   image = imageData;
-  sendSSEUpdate();
 }
 
-sendSSEUpdate() async{
-  var connections = sseHandler.connections;
-  while(await connections.hasNext) {
-    var connection = await connections.next;
-      connection.sink.add('update');
-      //connection.stream.listen(print);
-  }
+registerScreenshotStreamSubscription() {
+  eventChannel.receiveBroadcastStream().listen(handleNewImage);
 }
 
 Future webServer() async {
-  eventChannel.receiveBroadcastStream().listen(handleNewImage);
-  final handler = const Pipeline().addHandler(requestHandler);
-  io.serve(handler, InternetAddress.anyIPv6, 3000).then((server) {
-    print('Serving at http://${server.address.host}:${server.port}');
+  registerScreenshotStreamSubscription();
+  HttpServer.bind(InternetAddress.anyIPv6, 3000).then((server) {
+    server.listen((HttpRequest request) async {
+      switch(request.requestedUri.path) {
+        case '/': serveMain(request); break;
+        case '/screenshot': serveScreenshot(request); break;
+        case '/sse': serveSSE(request); break;
+      }
+    });
   });
 }
 
-Future<Response> requestHandler(Request request) {
-  switch(request.requestedUri.path) {
-        case '/': return serveMain(request); break;
-        case '/screenshot': return serveScreenshot(request); break;
-        case '/sse': return sseHandler.handler(request); break;
-      }
+serveScreenshot(HttpRequest request) async {
+  request.response.headers.set('Content-Type', 'image/png');
+  request.response.add(image);
+  request.response.close();
 }
 
-Future<Response> serveScreenshot(Request request) async {
-  const headers = {
-    'content-type': 'image/png',
-    'Cache-control': 'max-age=0, must-revalidate',
-  };
-  return Response.ok(image, headers: headers);
+int counter =0;
+serveSSE(HttpRequest request) async {
+  request.response.headers.set('Connection', 'keep-alive');
+  //request.response.headers.contentType = ContentType.html;
+  request.response.headers.set('Content-Type', 'text/event-stream');
+  request.response.headers.set('Cache-Control', 'no-cache');
+  //request.response.write('bla1');
+  request.response.write('\n');
+  request.response.write('id: $counter\n');
+  counter++;
+  request.response.write('data: rerdgtdg\n\n');
+  //request.response.flush();
+  request.response.close();
+  //request.response.close();
+  //ptimer(request.response);
 }
 
-Future<Response> serveMain(Request request) async {
+serveMain(HttpRequest request) async {
+  request.response.headers.contentType = ContentType.html;
   String js = await getFileContent('functions.js');
   String html = await getFileContent('index.html');
   String content = html.replaceFirst('//AutoreplaceByServer', js);
-  return Response.ok(content, headers: {'content-type': 'text/html'});
+  request.response.write(content);
+  request.response.close();
 }
 
 Future<String> getFileContent(String filename) {
