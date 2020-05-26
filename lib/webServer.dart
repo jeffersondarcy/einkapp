@@ -24,11 +24,10 @@ Future webServer() async {
         return;
       }
 
-      switch(request.requestedUri.path) {
-        case '/': serveMain(request); break;
-        case '/screenshot': serveScreenshot(request); break;
-        default: serveStatic(request);
-      }
+      if(request.requestedUri.path == '/') return serveMain(request);
+      if(request.requestedUri.path.startsWith('/screenshot')) return serveScreenshot(request);
+
+      serveStatic(request);
     });
   });
 }

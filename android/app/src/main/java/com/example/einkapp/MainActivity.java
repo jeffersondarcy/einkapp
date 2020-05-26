@@ -59,8 +59,8 @@ public class MainActivity extends FlutterActivity {
         display.getMetrics(metrics);
         Point size = new Point();
         display.getRealSize(size);
-        width = size.x;
-        height = size.y;
+        width = size.x / 4;
+        height = size.y / 4;
         density = metrics.densityDpi;
     }
 
@@ -147,30 +147,6 @@ public class MainActivity extends FlutterActivity {
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
                     byte[] newPng=baos.toByteArray();
 
-                    /*
-                    List<Map<String, Object>> planes = new ArrayList<>();
-                    for (Image.Plane plane : img.getPlanes()) {
-                        ByteBuffer buffer = plane.getBuffer();
-
-                        byte[] bytes = new byte[buffer.remaining()];
-                        buffer.get(bytes, 0, bytes.length);
-
-                        Map<String, Object> planeBuffer = new HashMap<>();
-                        planeBuffer.put("bytesPerRow", plane.getRowStride());
-                        planeBuffer.put("bytesPerPixel", plane.getPixelStride());
-                        planeBuffer.put("bytes", bytes);
-
-                        planes.add(planeBuffer);
-                    }
-
-                    Map<String, Object> imageBuffer = new HashMap<>();
-                    imageBuffer.put("width", img.getWidth());
-                    imageBuffer.put("height", img.getHeight());
-                    imageBuffer.put("format", img.getFormat());
-                    imageBuffer.put("planes", planes);
-
-                    imageStreamSink.success(imageBuffer);
-                     */
                     imageStreamSink.success(newPng);
                     img.close();
                 },

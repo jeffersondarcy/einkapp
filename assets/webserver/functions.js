@@ -1,3 +1,4 @@
+/*
 var imageElement = document.getElementById('mainScreenImg');
 var reader;
 
@@ -28,4 +29,19 @@ if (!!window.WebSocket && !!window.FileReader) {
 }
 else {
     setInterval(reloadImage, 1000);
+}
+
+ */
+var imageElement = document.getElementById('mainScreenImg');
+setInterval(reloadImage, 100);
+
+function writeShit() {
+    document.body.innerHTML += '<div>bla</div>'
+}
+function reloadImage() {
+    imageElement.src = imageUrl();
+}
+
+function imageUrl() {
+    return window.location.href + 'screenshot' + new Date().getTime() + '.png'
 }
