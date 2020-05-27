@@ -39,7 +39,7 @@ handleWebsocketCommunication(HttpRequest request) async {
 
 serveScreenshot(HttpRequest request) async {
   request.response.headers.set('Content-Type', 'image/png');
-  request.response.add(image);
+  //request.response.add(image);
   request.response.close();
 }
 

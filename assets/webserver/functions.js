@@ -1,4 +1,3 @@
-/*
 var imageElement = document.getElementById('mainScreenImg');
 var reader;
 
@@ -31,7 +30,7 @@ else {
     setInterval(reloadImage, 1000);
 }
 
- */
+/*
 var imageElement = document.getElementById('mainScreenImg');
 setInterval(reloadImage, 100);
 
@@ -45,3 +44,5 @@ function reloadImage() {
 function imageUrl() {
     return window.location.href + 'screenshot' + new Date().getTime() + '.png'
 }
+
+ */

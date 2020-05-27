@@ -59,20 +59,21 @@ public class MainActivity extends FlutterActivity {
         display.getMetrics(metrics);
         Point size = new Point();
         display.getRealSize(size);
-        width = size.x / 4;
-        height = size.y / 4;
-        density = metrics.densityDpi;
+        width = size.x;
+        height = size.y;
+        density = 200;//metrics.densityDpi;
     }
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
-        final String channelName = "e-ink.fitdev.io/screenshotStream";
         initDisplayParameters();
         super.onCreate(savedInstanceState);
         mProjectionManager =
                 (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
         startActivityForResult(mProjectionManager.createScreenCaptureIntent(),
                 PERMISSION_CODE);
+        Intent intent = new Intent(this, Streaming.class);
+        startForegroundService(intent);
     }
 
     @Override
@@ -96,11 +97,15 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        if (mMediaProjection != null) {
-            mMediaProjection.stop();
-            mMediaProjection = null;
+        /*
+        if (isFinishing()) {
+            if (mMediaProjection != null) {
+                mMediaProjection.stop();
+                mMediaProjection = null;
+            }
+            mVirtualDisplay.release();
         }
-        mVirtualDisplay.release();
+         */
     }
 
     @Override
