@@ -79,6 +79,14 @@ public class MainActivity extends FlutterActivity {
         mVirtualDisplay = mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
     }
 
+    private void pauseProjection() {
+        mVirtualDisplay.setSurface(null);
+    }
+
+    private void resumeProjection() {
+        mVirtualDisplay.setSurface(mImageReader.getSurface());
+    }
+
     @Override
     public void onDestroy() {
         super.onDestroy();
