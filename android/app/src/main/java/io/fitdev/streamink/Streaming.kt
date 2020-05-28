@@ -1,10 +1,8 @@
-package com.example.einkapp;
+package io.fitdev.streamink;
 import android.app.*
-import com.example.einkapp.R;
 import android.content.Context
 import android.content.Intent
 import android.os.*
-import android.os.Process
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 
