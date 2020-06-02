@@ -1,6 +1,5 @@
 package io.fitdev.streamink;
 
-import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.media.Image;
@@ -43,6 +42,13 @@ public class MainActivity extends FlutterActivity {
   private static final String TAG = "MediaProjectionDemo";
   private static final int PERMISSION_CODE = 1;
 
+  public static byte[] convertBitmapToByteArrayUncompressed(Bitmap bitmap){
+    ByteBuffer byteBuffer = ByteBuffer.allocate(bitmap.getByteCount());
+    bitmap.copyPixelsToBuffer(byteBuffer);
+    byteBuffer.rewind();
+    return byteBuffer.array();
+  }
+
   private void refreshDisplayParameters() {
     display.getMetrics(metrics);
     Point size = new Point();
@@ -51,19 +57,6 @@ public class MainActivity extends FlutterActivity {
     height = size.y;
     density = metrics.densityDpi;
     rotation = display.getRotation();
-  }
-
-  @Override
-  public void onConfigurationChanged(@NonNull Configuration newConfig) {
-    super.onConfigurationChanged(newConfig);
-    if (newConfig.orientation != rotation) {
-      refreshDisplayParameters();
-      mVirtualDisplay.release();
-      //mImageReader.close();
-      mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2);
-      mVirtualDisplay = mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
-      //setStreamHandler();
-    }
   }
 
   @Override
@@ -150,14 +143,14 @@ public class MainActivity extends FlutterActivity {
         if (img == null) return;
 
         Bitmap bufferedBmp = getBufferedBitmap(img);
-        Bitmap fixedBmp = bufferedBmp;
-        //Bitmap fixedBmp = getFixedBitmap(bufferedBmp);
 
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        fixedBmp.compress(Bitmap.CompressFormat.JPEG, 100, baos);
+        bufferedBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
         byte[] imageData = baos.toByteArray();
 
         imageStreamSink.success(imageData);
+
+        //imageStreamSink.success(convertBitmapToByteArrayUncompressed(bufferedBmp));
         img.close();
       },
       null);

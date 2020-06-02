@@ -1,22 +1,49 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:einkapp/ImageProcessor.dart';
 import 'package:flutter/services.dart';
 
-final Stream<dynamic> plattformStream = EventChannel('e-ink.fitdev.io/screenshotStream')
-    .receiveBroadcastStream();
-dynamic image;
-
-void handleNewImage(dynamic imageData) {
-  image = imageData;
-}
-
-registerScreenshotStreamSubscription() {
-  plattformStream.listen(handleNewImage);
-}
-
 Future webServer() async {
-  registerScreenshotStreamSubscription();
+  final imageProcessor = ImageProcessor();
+  final Stream<dynamic> imageStream = imageProcessor.receiveBroadcastStream();
+
+  handleWebsocketCommunication(HttpRequest request) async {
+    WebSocket ws = await WebSocketTransformer.upgrade(request);
+    ws.addStream(imageStream);
+  }
+
+  Future<String> getFileContent(String filename) async{
+    try {
+      return rootBundle.loadString('assets/webserver/$filename');
+    } catch (e) {
+      return '';
+    }
+  }
+
+  serveScreenshot(HttpRequest request) async {
+    request.response.headers.set('Content-Type', 'image/png');
+    final image = imageProcessor.getCurrentImage();
+    if(image != null ) request.response.add(image);
+    request.response.close();
+  }
+
+  serveMain(HttpRequest request) async {
+    request.response.headers.contentType = ContentType.html;
+    String html = await getFileContent('index.html');
+    request.response.write(html);
+    request.response.close();
+  }
+
+  serveStatic(HttpRequest request) async {
+    String path = request.requestedUri.path;
+    if (path.endsWith('.js')) {
+      request.response.headers.set('Content-Type', 'text/javascript');
+      request.response.write(await getFileContent(path.substring(1)));
+      request.response.close();
+    }
+  }
+
   HttpServer.bind(InternetAddress.anyIPv6, 3000).then((server) {
     server.listen((HttpRequest request) async {
       if(WebSocketTransformer.isUpgradeRequest(request)) {
@@ -30,39 +57,4 @@ Future webServer() async {
       serveStatic(request);
     });
   });
-}
-
-handleWebsocketCommunication(HttpRequest request) async {
-  WebSocket ws = await WebSocketTransformer.upgrade(request);
-  ws.addStream(plattformStream);
-}
-
-serveScreenshot(HttpRequest request) async {
-  request.response.headers.set('Content-Type', 'image/png');
-  if(image != null ) request.response.add(image);
-  request.response.close();
-}
-
-serveMain(HttpRequest request) async {
-  request.response.headers.contentType = ContentType.html;
-  String html = await getFileContent('index.html');
-  request.response.write(html);
-  request.response.close();
-}
-
-serveStatic(HttpRequest request) async {
-  String path = request.requestedUri.path;
-  if (path.endsWith('.js')) {
-    request.response.headers.set('Content-Type', 'text/javascript');
-    request.response.write(await getFileContent(path.substring(1)));
-    request.response.close();
-  }
-}
-
-Future<String> getFileContent(String filename) async{
-  try {
-    return rootBundle.loadString('assets/webserver/$filename');
-  } catch (e) {
-    return '';
-  }
 }
