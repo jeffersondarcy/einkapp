@@ -1,5 +1,6 @@
 package io.fitdev.streamink;
 
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.PixelFormat;
 import android.media.Image;
@@ -18,8 +19,8 @@ import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 import android.view.Display;
-import android.view.Surface;
 import android.widget.Toast;
 import android.hardware.display.DisplayManager;
 import android.view.WindowManager;
@@ -49,21 +50,11 @@ public class MainActivity extends FlutterActivity {
     return byteBuffer.array();
   }
 
-  private void refreshDisplayParameters() {
-    display.getMetrics(metrics);
-    Point size = new Point();
-    display.getRealSize(size);
-    width = size.x;
-    height = size.y;
-    density = metrics.densityDpi;
-    rotation = display.getRotation();
-  }
-
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+    createDisplayMetrics();
 
-    refreshDisplayParameters();
     super.onCreate(savedInstanceState);
     Intent intent = new Intent(this, MediaProjectionService.class);
     startForegroundService(intent);
@@ -87,16 +78,27 @@ public class MainActivity extends FlutterActivity {
       return;
     }
     mMediaProjection = mProjectionManager.getMediaProjection(resultCode, data);
-
-    mVirtualDisplay = mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
+    createVirtualDisplay();
   }
 
-  private void pauseProjection() {
-    mVirtualDisplay.setSurface(null);
-  }
+  @Override
+  public void onConfigurationChanged(@NonNull Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    Log.w("bla", "config rotation" + newConfig.orientation);
+    if (newConfig.orientation != rotation) {
+      try {
+        // clean up
+        if (mVirtualDisplay != null) mVirtualDisplay.release();
+        if (mImageReader != null) mImageReader.setOnImageAvailableListener(null, null);
 
-  private void resumeProjection() {
-    mVirtualDisplay.setSurface(mImageReader.getSurface());
+        // re-create virtual display depending on device width / height
+        createDisplayMetrics();
+        createImageReader();
+        createVirtualDisplay();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
   }
 
   @Override
@@ -115,10 +117,10 @@ public class MainActivity extends FlutterActivity {
   public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
     super.configureFlutterEngine(flutterEngine);
 
-    mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2);
     final String channelName = "e-ink.fitdev.io/screenshotStream";
     eventChannel = new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
-    setStreamHandler();
+
+    createImageReader();
   }
 
   private void setStreamHandler() {
@@ -134,6 +136,27 @@ public class MainActivity extends FlutterActivity {
           mImageReader.setOnImageAvailableListener(null, null);
         }
       });
+  }
+
+  private void createVirtualDisplay() {
+    mVirtualDisplay = mMediaProjection.createVirtualDisplay("screen-mirror", width, height, density, flags, mImageReader.getSurface(), null, null);
+  }
+
+  private void createDisplayMetrics() {
+    // get width and height
+    Point size = new Point();
+    display.getSize(size);
+    width = size.x;
+    height = size.y;
+    display.getMetrics(metrics);
+    density = metrics.densityDpi;
+    rotation = display.getRotation();
+    Log.w("bla", "rotation" + rotation);
+  }
+
+  private void createImageReader() {
+    mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2);
+    setStreamHandler();
   }
 
   private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
