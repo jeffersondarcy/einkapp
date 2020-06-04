@@ -2,6 +2,7 @@ package io.fitdev.streamink;
 
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.Matrix;
 import android.graphics.PixelFormat;
 import android.media.Image;
 import android.media.ImageReader;
@@ -53,7 +54,6 @@ public class MainActivity extends FlutterActivity {
   @Override
   protected void onCreate(@Nullable Bundle savedInstanceState) {
     display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
-    createDisplayMetrics();
 
     super.onCreate(savedInstanceState);
     Intent intent = new Intent(this, MediaProjectionService.class);
@@ -120,6 +120,7 @@ public class MainActivity extends FlutterActivity {
     final String channelName = "e-ink.fitdev.io/screenshotStream";
     eventChannel = new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
 
+    createDisplayMetrics();
     createImageReader();
     setStreamHandler();
   }
@@ -186,6 +187,14 @@ public class MainActivity extends FlutterActivity {
     int rowPadding = rowStride - pixelStride * img.getWidth();
     Bitmap bitmap = Bitmap.createBitmap(img.getWidth() + rowPadding / pixelStride, img.getHeight(), Bitmap.Config.ARGB_8888);
     bitmap.copyPixelsFromBuffer(buffer);
+    if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
+      Matrix matrix = new Matrix();
+      matrix.postRotate(270);
+
+      Bitmap bitmapRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
+      bitmap.recycle();
+      return bitmapRotated;
+    }
 
     return bitmap;
   }
