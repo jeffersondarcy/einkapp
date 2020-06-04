@@ -38,9 +38,9 @@ public class MainActivity extends FlutterActivity {
   private VirtualDisplay mVirtualDisplay;
   private EventChannel eventChannel;
   private DisplayMetrics metrics = new DisplayMetrics();
-  int width, height, density, rotation;
+  EventChannel.EventSink imageStreamSink;
+  int width, height, density, orientation;
   ImageReader mImageReader;
-  private static final String TAG = "MediaProjectionDemo";
   private static final int PERMISSION_CODE = 1;
 
   public static byte[] convertBitmapToByteArrayUncompressed(Bitmap bitmap){
@@ -84,8 +84,7 @@ public class MainActivity extends FlutterActivity {
   @Override
   public void onConfigurationChanged(@NonNull Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
-    Log.w("bla", "config rotation" + newConfig.orientation);
-    if (newConfig.orientation != rotation) {
+    if (newConfig.orientation != orientation) {
       try {
         // clean up
         if (mVirtualDisplay != null) mVirtualDisplay.release();
@@ -94,6 +93,7 @@ public class MainActivity extends FlutterActivity {
         // re-create virtual display depending on device width / height
         createDisplayMetrics();
         createImageReader();
+        setImageStreamImageAvailableListener();
         createVirtualDisplay();
       } catch (Exception e) {
         e.printStackTrace();
@@ -121,14 +121,16 @@ public class MainActivity extends FlutterActivity {
     eventChannel = new EventChannel(getFlutterEngine().getDartExecutor().getBinaryMessenger(), channelName);
 
     createImageReader();
+    setStreamHandler();
   }
 
   private void setStreamHandler() {
     eventChannel.setStreamHandler(
       new EventChannel.StreamHandler() {
         @Override
-        public void onListen(Object o, EventChannel.EventSink imageStreamSink) {
-          setImageStreamImageAvailableListener(imageStreamSink);
+        public void onListen(Object o, EventChannel.EventSink sink) {
+          imageStreamSink = sink; //workaround to obtain the sink for future imageReader re-initializations
+          setImageStreamImageAvailableListener();
         }
 
         @Override
@@ -150,16 +152,14 @@ public class MainActivity extends FlutterActivity {
     height = size.y;
     display.getMetrics(metrics);
     density = metrics.densityDpi;
-    rotation = display.getRotation();
-    Log.w("bla", "rotation" + rotation);
+    orientation = getResources().getConfiguration().orientation;
   }
 
   private void createImageReader() {
     mImageReader = ImageReader.newInstance(width, height, PixelFormat.RGBA_8888, 2);
-    setStreamHandler();
   }
 
-  private void setImageStreamImageAvailableListener(final EventChannel.EventSink imageStreamSink) {
+  private void setImageStreamImageAvailableListener() {
     mImageReader.setOnImageAvailableListener(
       reader -> {
         Image img = reader.acquireLatestImage();
@@ -170,7 +170,6 @@ public class MainActivity extends FlutterActivity {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bufferedBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
         byte[] imageData = baos.toByteArray();
-
         imageStreamSink.success(imageData);
 
         //imageStreamSink.success(convertBitmapToByteArrayUncompressed(bufferedBmp));
