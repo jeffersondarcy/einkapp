@@ -149,8 +149,8 @@ public class MainActivity extends FlutterActivity {
     // get width and height
     Point size = new Point();
     display.getSize(size);
-    width = size.x;
-    height = size.y;
+    width = size.x / 4;
+    height = size.y / 4;
     display.getMetrics(metrics);
     density = metrics.densityDpi;
     orientation = getResources().getConfiguration().orientation;
@@ -187,6 +187,7 @@ public class MainActivity extends FlutterActivity {
     int rowPadding = rowStride - pixelStride * img.getWidth();
     Bitmap bitmap = Bitmap.createBitmap(img.getWidth() + rowPadding / pixelStride, img.getHeight(), Bitmap.Config.ARGB_8888);
     bitmap.copyPixelsFromBuffer(buffer);
+    /*
     if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
       Matrix matrix = new Matrix();
       matrix.postRotate(270);
@@ -195,6 +196,8 @@ public class MainActivity extends FlutterActivity {
       bitmap.recycle();
       return bitmapRotated;
     }
+    
+     */
 
     return bitmap;
   }

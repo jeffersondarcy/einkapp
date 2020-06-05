@@ -1,5 +1,7 @@
 import 'dart:async';
+import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart';
 
@@ -16,7 +18,7 @@ class ImageProcessor {
   }
 
   receiveBroadcastStream() {
-    return controller.stream;
+    return controller.stream.asBroadcastStream();
   }
 
   handleNewImage(dynamic imageData) {
@@ -24,19 +26,29 @@ class ImageProcessor {
       print('skip image');
       return;
     }
-    busy = true;
-    _outputImage = processImage(imageData);
-    controller.add(_outputImage);
-    busy = false;
+    processImage(imageData);
   }
 
   getCurrentImage() {
     return _outputImage;
   }
+
+  processImage(bitmapData) async{
+    busy = true;
+    print('start isolate');
+    final imageData = await compute(
+        imageOperations, bitmapData
+    );
+    print('finish image');
+    _outputImage = imageData;
+    controller.add(imageData);
+    busy = false;
+  }
 }
 
-processImage(bitmapData) {
-  //return bitmapData;
+imageOperations(bitmapData){
+  print('process image');
   Image img = decodePng(bitmapData);
-  return encodePng(invert(img));
+  img = adjustColor(img, gamma: 2, saturation: 0, exposure: 0.06);
+  return encodePng(img);
 }
