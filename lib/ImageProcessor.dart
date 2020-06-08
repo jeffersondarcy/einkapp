@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:isolate';
+import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -47,8 +48,11 @@ class ImageProcessor {
 }
 
 imageOperations(bitmapData){
+  /*
   print('process image');
   Image img = decodePng(bitmapData);
   img = adjustColor(img, gamma: 2, saturation: 0, exposure: 0.06);
   return encodePng(img);
+   */
+  return bitmapData;
 }

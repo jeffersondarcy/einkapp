@@ -20,7 +20,6 @@ import android.hardware.display.VirtualDisplay;
 import android.media.projection.MediaProjection;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 import android.view.Display;
 import android.widget.Toast;
 import android.hardware.display.DisplayManager;
@@ -47,7 +46,6 @@ public class MainActivity extends FlutterActivity {
   public static byte[] convertBitmapToByteArrayUncompressed(Bitmap bitmap){
     ByteBuffer byteBuffer = ByteBuffer.allocate(bitmap.getByteCount());
     bitmap.copyPixelsToBuffer(byteBuffer);
-    byteBuffer.rewind();
     return byteBuffer.array();
   }
 
@@ -149,8 +147,8 @@ public class MainActivity extends FlutterActivity {
     // get width and height
     Point size = new Point();
     display.getSize(size);
-    width = size.x / 4;
-    height = size.y / 4;
+    width = size.x;
+    height = size.y;
     display.getMetrics(metrics);
     density = metrics.densityDpi;
     orientation = getResources().getConfiguration().orientation;
@@ -167,13 +165,15 @@ public class MainActivity extends FlutterActivity {
         if (img == null) return;
 
         Bitmap bufferedBmp = getBufferedBitmap(img);
-
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         bufferedBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
         byte[] imageData = baos.toByteArray();
         imageStreamSink.success(imageData);
 
+
+
         //imageStreamSink.success(convertBitmapToByteArrayUncompressed(bufferedBmp));
+        bufferedBmp.recycle();
         img.close();
       },
       null);
@@ -187,18 +187,16 @@ public class MainActivity extends FlutterActivity {
     int rowPadding = rowStride - pixelStride * img.getWidth();
     Bitmap bitmap = Bitmap.createBitmap(img.getWidth() + rowPadding / pixelStride, img.getHeight(), Bitmap.Config.ARGB_8888);
     bitmap.copyPixelsFromBuffer(buffer);
-    /*
+
     if (orientation == Configuration.ORIENTATION_LANDSCAPE) {
       Matrix matrix = new Matrix();
       matrix.postRotate(270);
 
-      Bitmap bitmapRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, false);
+      Bitmap bitmapRotated = Bitmap.createBitmap(bitmap, 0, 0, width, height, matrix, false);
       bitmap.recycle();
       return bitmapRotated;
     }
     
-     */
-
     return bitmap;
   }
 }
